@@ -1,0 +1,647 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Linux1 by wangfakang</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Linux1</h1>
+        <p class="header">linux process commuinte pipe signal sem shm</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/wangfakang/linux1/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/wangfakang/linux1/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/wangfakang/linux1">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/wangfakang">wangfakang</a></p>
+
+
+      </header>
+      <section>
+        <p><code>有关进程间通信的讲解</code></p>
+
+<p>IPC技术：进程通信，有以下几种种：</p>
+
+<p>管道：1 有名管道 2  无名管道
+  3 System V IPC （信号量）
+  4 套接字
+  5 消息队列</p>
+
+<h1>
+<a id="一有关管道的讲解" class="anchor" href="#%E4%B8%80%E6%9C%89%E5%85%B3%E7%AE%A1%E9%81%93%E7%9A%84%E8%AE%B2%E8%A7%A3" aria-hidden="true"><span class="octicon octicon-link"></span></a>一．有关管道的讲解</h1>
+
+<p>首先管道是用于两个不同进程之间的数据传递，即实现进程之间的通信，其思想就是共享某个存储区. </p>
+
+<p>问题一有关管道的详解：</p>
+
+<p>管道是半双工通信</p>
+
+<pre><code>  int  pipe(int fd[2]);
+</code></pre>
+
+<ul>
+<li><p>fd[2]:用于返回文件描述符的数组</p></li>
+<li>
+<p>返回值：成功返回0，失败返回-1</p>
+
+<p>注意：　都在内存中
+如：</p>
+</li>
+</ul>
+
+<div class="highlight highlight-source-c"><pre>  <span class="pl-k">int</span>  <span class="pl-en">main</span>()
+{
+ <span class="pl-k">int</span> fd[<span class="pl-c1">2</span>]={<span class="pl-c1">0</span>};
+ <span class="pl-k">if</span>(<span class="pl-c1">pipe</span>(fd)==-<span class="pl-c1">1</span>)
+{
+<span class="pl-k">return</span> -<span class="pl-c1">1</span>;
+}
+
+<span class="pl-k">char</span> buffer[<span class="pl-c1">256</span>]={<span class="pl-c1">0</span>};
+
+<span class="pl-c1">write</span>(fd[<span class="pl-c1">1</span>],<span class="pl-s"><span class="pl-pds">"</span>hello<span class="pl-pds">"</span></span>,<span class="pl-c1">5</span>);
+
+<span class="pl-c1">sleep</span>(<span class="pl-c1">1</span>);
+
+<span class="pl-c1">read</span>(fd[<span class="pl-c1">0</span>],buffer,<span class="pl-c1">255</span>);
+
+<span class="pl-c1">printf</span>(<span class="pl-s"><span class="pl-pds">"</span>buffer=<span class="pl-pds">"</span></span>);
+
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}
+</pre></div>
+
+<p>结果为： hello</p>
+
+<p>测试管道的大小：    </p>
+
+<p>原理是：当管道里面写满的时候就会阻塞    </p>
+
+<div class="highlight highlight-source-c"><pre>
+  <span class="pl-k">int</span>  <span class="pl-en">main</span>()
+{
+ <span class="pl-k">int</span> fd[<span class="pl-c1">2</span>]={<span class="pl-c1">0</span>};
+
+ <span class="pl-k">if</span>(<span class="pl-c1">pipe</span>(fd)==-<span class="pl-c1">1</span>)
+{
+str
+<span class="pl-c1">sleep</span>
+
+<span class="pl-k">return</span> -<span class="pl-c1">1</span>;
+}
+
+<span class="pl-k">while</span>(<span class="pl-c1">1</span>)
+{
+<span class="pl-c1">write</span>(fd[<span class="pl-c1">1</span>],<span class="pl-s"><span class="pl-pds">'</span>1<span class="pl-pds">'</span></span>,<span class="pl-c1">1</span>);
+
+<span class="pl-c1">printf</span>(<span class="pl-s"><span class="pl-pds">"</span>i=<span class="pl-c1">%d</span><span class="pl-cce">\n</span><span class="pl-pds">"</span></span>,i++);
+
+
+}
+
+}</pre></div>
+
+<p>结果是输出 i=65535    </p>
+
+<p>即是：  变化了16位，2的16次方，即64k，  每一页有4k  。    </p>
+
+<p>其大小可以在include/linux/limits/中的BUF_SIZE
+就是管道的大小      </p>
+
+<p>两个进程的通信例子：    </p>
+
+<p>在子进程中写入hello在父进程中读出来  </p>
+
+<div class="highlight highlight-source-c"><pre> <span class="pl-k">int</span>  <span class="pl-en">main</span>()
+{
+ <span class="pl-k">int</span> fd[<span class="pl-c1">2</span>]={<span class="pl-c1">0</span>};
+ <span class="pl-k">if</span>(<span class="pl-c1">pipe</span>(fd)==-<span class="pl-c1">1</span>)
+{
+<span class="pl-k">return</span> -<span class="pl-c1">1</span>;
+}
+<span class="pl-c1">pid_t</span> pid=<span class="pl-c1">fork</span>();
+<span class="pl-c1">assert</span>(pid!=-<span class="pl-c1">1</span>);
+<span class="pl-k">if</span>(<span class="pl-c1">0</span>==pid)
+{
+<span class="pl-c1">sleep</span>(<span class="pl-c1">1</span>);
+<span class="pl-c1">write</span>(fd[<span class="pl-c1">1</span>],<span class="pl-s"><span class="pl-pds">"</span>hello<span class="pl-pds">"</span></span>,<span class="pl-c1">5</span>);
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">0</span>]);
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">1</span>]);
+}
+
+<span class="pl-k">else</span>
+{
+<span class="pl-k">char</span> buffer[<span class="pl-c1">256</span>]={<span class="pl-c1">0</span>};
+<span class="pl-c1">read</span>(fd[<span class="pl-c1">0</span>],buffer,<span class="pl-c1">255</span>);
+<span class="pl-c1">printf</span>(<span class="pl-s"><span class="pl-pds">"</span>buffer=<span class="pl-c1">%s</span><span class="pl-pds">"</span></span>,buffer);
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">0</span>]);
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">1</span>]);
+}
+
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}</pre></div>
+
+<p>问题一注意：<br>
+    两个进程之间通信的时候，对于父进程到子进程的管道，父进程应该关闭读端（fd[0],反之则相反）　　　</p>
+
+<ul>
+<li><p>1.当读一个写端已经被关闭的时候，在所有数据都读完后read返回0，指示到文件的结束</p></li>
+<li><p>2.当写一个读端已经被关闭的时候，则产生SIGPIPE信号，如果忽略该信号或者捕获该信号并从其处理程序返回，则write返回出错，errno设置为EPIPE</p></li>
+</ul>
+
+<div class="highlight highlight-source-c"><pre>
+<span class="pl-k">int</span> <span class="pl-en">main</span>()
+{
+    <span class="pl-k">int</span> fd[<span class="pl-c1">2</span>];
+    <span class="pl-c1">pipe</span>(fd);
+    <span class="pl-c1">pid_t</span> pid =<span class="pl-c1">fork</span>();
+    <span class="pl-c1">assert</span>(pid!=-<span class="pl-c1">1</span>);
+    <span class="pl-k">if</span>(pid==<span class="pl-c1">0</span>)
+{
+   <span class="pl-k">char</span> buffer[<span class="pl-c1">256</span>]={<span class="pl-c1">0</span>};
+<span class="pl-k">char</span> *p=buffer;
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">1</span>]);
+ <span class="pl-k">while</span>(<span class="pl-c1">read</span>(fd[<span class="pl-c1">0</span>],buffer,<span class="pl-c1">255</span>)&gt;<span class="pl-c1">0</span>)
+{
+   <span class="pl-k">while</span>(*p!=<span class="pl-s"><span class="pl-pds">'</span><span class="pl-cce">\0</span><span class="pl-pds">'</span></span>)
+{
+<span class="pl-k">if</span>(*p&gt;=<span class="pl-s"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>  &amp;&amp;  *p&lt;=<span class="pl-s"><span class="pl-pds">'</span>z<span class="pl-pds">'</span></span>)
+{
+*p-=<span class="pl-c1">32</span>;
+
+}
+++p;
+
+}
+<span class="pl-c1">puts</span>(buffer);
+<span class="pl-c1">memset</span>(buffer,<span class="pl-c1">0</span>,<span class="pl-c1">256</span>);
+
+}
+
+}
+
+<span class="pl-k">else</span>
+{
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">0</span>]);
+
+<span class="pl-k">int</span> i=<span class="pl-c1">10</span>;
+<span class="pl-k">while</span>(i--)
+{
+<span class="pl-c1">write</span>(fd[<span class="pl-c1">1</span>],<span class="pl-s"><span class="pl-pds">"</span>hell0<span class="pl-pds">"</span></span>,<span class="pl-c1">5</span>);
+
+}
+
+<span class="pl-c1">close</span>(fd[<span class="pl-c1">1</span>]);
+
+
+}
+
+<span class="pl-c1">exit</span>(<span class="pl-c1">0</span>);
+
+}</pre></div>
+
+<p>结果：   </p>
+
+<ul>
+<li>1.在fork之前write  若close(fd[0])则子进程的read无法读取，直接终止程序。</li>
+<li>2.在fork之前write  若没有close(fd[0])则同时输出10个</li>
+<li>3.在fork之后write  若没有close(fd[0])则同时输出20个</li>
+<li>4.在fork之后在父进程中write 则输出10个</li>
+</ul>
+
+<h1>
+<a id="有名管道" class="anchor" href="#%E6%9C%89%E5%90%8D%E7%AE%A1%E9%81%93" aria-hidden="true"><span class="octicon octicon-link"></span></a>有名管道</h1>
+
+<p>mkfifow.c</p>
+
+<div class="highlight highlight-source-c"><pre>
+ <span class="pl-k">int</span> <span class="pl-en">main</span>()
+{
+  <span class="pl-k">if</span>(<span class="pl-c1">access</span>(<span class="pl-s"><span class="pl-pds">"</span>./fifo<span class="pl-pds">"</span></span>,F_OK)!=<span class="pl-c1">0</span>)
+ { 
+    <span class="pl-k">int</span> res=<span class="pl-c1">mkfifo</span>(<span class="pl-s"><span class="pl-pds">"</span>./fifo<span class="pl-pds">"</span></span>,<span class="pl-c1">0666</span>);
+    <span class="pl-c1">assert</span>(res!=-<span class="pl-c1">1</span>);
+ }
+  <span class="pl-c1">puts</span>(<span class="pl-s"><span class="pl-pds">"</span>mkfifo  success...<span class="pl-pds">"</span></span>);
+  <span class="pl-k">int</span> fdw=<span class="pl-c1">open</span>(<span class="pl-s"><span class="pl-pds">"</span>./fifo<span class="pl-pds">"</span></span>,O_WRONLY);
+  <span class="pl-c1">assert</span>(fdw!=-<span class="pl-c1">1</span>);
+  <span class="pl-c1">puts</span>(<span class="pl-s"><span class="pl-pds">"</span>w open success...<span class="pl-pds">"</span></span>);
+
+  <span class="pl-c1">close</span>(fdw);
+
+}
+
+mkfifor.c
+
+ <span class="pl-k">int</span> <span class="pl-en">main</span>()
+{
+  <span class="pl-k">if</span>(<span class="pl-c1">access</span>(<span class="pl-s"><span class="pl-pds">"</span>./fifo<span class="pl-pds">"</span></span>,F_OK)!=<span class="pl-c1">0</span>)
+ { 
+    <span class="pl-k">int</span> res=<span class="pl-c1">mkfifo</span>(<span class="pl-s"><span class="pl-pds">"</span>./fifo<span class="pl-pds">"</span></span>,<span class="pl-c1">0666</span>);
+    <span class="pl-c1">assert</span>(res!=-<span class="pl-c1">1</span>);
+}
+  <span class="pl-c1">puts</span>(<span class="pl-s"><span class="pl-pds">"</span>mkfifo  success...<span class="pl-pds">"</span></span>);
+  <span class="pl-k">int</span> fdw=<span class="pl-c1">open</span>(<span class="pl-s"><span class="pl-pds">"</span>./fifo<span class="pl-pds">"</span></span>,O_RDONLY);
+  <span class="pl-c1">assert</span>(fdw!=-<span class="pl-c1">1</span>);
+  <span class="pl-c1">puts</span>(<span class="pl-s"><span class="pl-pds">"</span>r open success...<span class="pl-pds">"</span></span>);
+
+  <span class="pl-c1">close</span>(fdw);
+
+}</pre></div>
+
+<p>access("./fifo",F_OK)//用于判断在当前目录中是否已经存在一个名字为fifo的文件，若有的话则返回0，
+mkfifo("./fifo",0666);//      </p>
+
+<ul>
+<li><p>第一个参数：表示文件名和路径   </p></li>
+<li><p>第二个参数表示：文件的权限    </p></li>
+</ul>
+
+<h2>
+<a id="注意" class="anchor" href="#%E6%B3%A8%E6%84%8F" aria-hidden="true"><span class="octicon octicon-link"></span></a>注意：</h2>
+
+<p>若当该函数执行的时候，已经存在一个"./fifo"文件了，则会失败返回 -1；</p>
+
+<h2>
+<a id="注意-1" class="anchor" href="#%E6%B3%A8%E6%84%8F-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>注意：</h2>
+
+<p>和操作无名管道一样，只不过是在操作无名管道的时候我们不在显示的调用Open函数打开管道文件了。     </p>
+
+<p>切记：操作无名管道阻塞的位置是open而不是，read 或write位置处处。     </p>
+
+<p>在操作有名管道的时候： 如果以某种方式打开有名管道，则系统阻塞该进程，直到有另一个进程以另
+   一种方式打开管道后才会继续执行（注意：非阻塞标志O_NONBLOCK）都是在open处阻塞.     </p>
+
+<p>所以一个进程可以以可读可写的方式打开管道，则该进程不会阻塞</p>
+
+<h1>
+<a id="信号量的相关操作p操作v操作" class="anchor" href="#%E4%BF%A1%E5%8F%B7%E9%87%8F%E7%9A%84%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9Cp%E6%93%8D%E4%BD%9Cv%E6%93%8D%E4%BD%9C" aria-hidden="true"><span class="octicon octicon-link"></span></a>信号量的相关操作P操作V操作</h1>
+
+<ul>
+<li><p>临界资源：同一时刻，只允许一个进程访问的资源      </p></li>
+<li><p>临界区：访问临界资源的那段代码就是临区   </p></li>
+<li><p>原子操作：是指要么不做要么全做   </p></li>
+</ul>
+
+<p>实现进程进程之间的通信和控制</p>
+
+<p>一：获取或是创建信号量</p>
+
+<pre><code>  int semget(key_t key,int num_sem,int sem_flags);
+</code></pre>
+
+<ul>
+<li> 第一个参数是：信号量标示符</li>
+<li> 第二个参数是：信号量个数</li>
+<li>
+<p>第三个参数是：权限</p>
+
+<p>sem_flags  取值：
+      0666|IPC_CREAT</p>
+
+<p>一般IPC_CREAT与IPC_EXCL连起来运用  作用是确保此信号量是新建的</p>
+
+<p>返回值：如果成功则返回信号量标示符（注意：是一个大于0的）
+ 失败则返回-1</p>
+</li>
+</ul>
+
+<p>二：用于改变信号量的值</p>
+
+<pre><code>  int semop(int sem_id,struct sembuf* sem_ops,size_t num_sem_ops)
+</code></pre>
+
+<p>第一个参数是：信号量标示符
+   第二个参数是：指向下面结构体
+   第三个参数是:  信号量个数</p>
+
+<div class="highlight highlight-source-c"><pre>    <span class="pl-k">struct</span> sembuf {
+    <span class="pl-k">short</span> sem_num;
+    <span class="pl-k">short</span> sem_op;<span class="pl-c">//当P或V时         //取值不一样的  P 则              //sem_op=-1;   V 则</span>
+       <span class="pl-c">//sem_op=1;</span>
+    <span class="pl-k">short</span> sem_flg;<span class="pl-c">//一般取值</span>
+ <span class="pl-c">//是 sem_flg=SEM_UNDO</span>
+   };</pre></div>
+
+<p>一般取值是 sem_flg=SEM_UNDO,含义是：<br>
+使得操作系统可以跟踪当前进程信号量的修改     </p>
+
+<p>三：用于控制信号量的</p>
+
+<p>int semctl(int sem_id,int sem_num,int command,...)</p>
+
+<p>第一个参数是：信号量标示符
+   第二个参数是：信号量标号（从0开始）
+   第三个参数是：将要采取的动作
+       有删除  IPC_RMID
+       SETVAL 是把一个信号量设置为一个已知的值，是通过下面联合体中的val成员（一般是第一次使用时 即临界资源状态设置）</p>
+
+<p>union semun
+{
+int val;
+struct semid_ds *buf;
+unsigned short *array;
+};</p>
+
+<p>有关信号量的初始化：</p>
+
+<p>注意下面是模拟 P  V操作</p>
+
+<div class="highlight highlight-source-c"><pre>
+#<span class="pl-k">include</span><span class="pl-s"><span class="pl-pds">&lt;</span>sys/sem.h<span class="pl-pds">&gt;</span></span>
+<span class="pl-k">int</span> <span class="pl-en">sem_init</span>()
+{
+<span class="pl-k">int</span> semid=<span class="pl-c1">semget</span>((<span class="pl-c1">key_t</span>)<span class="pl-c1">12</span>,<span class="pl-c1">1</span>,<span class="pl-c1">0666</span>|IPC_CREAT|IPC_EXCL);
+<span class="pl-k">if</span>(semid==-<span class="pl-c1">1</span>)
+{
+   semid=<span class="pl-c1">semget</span>((<span class="pl-c1">key_t</span>)<span class="pl-c1">12</span>,<span class="pl-c1">1</span>,<span class="pl-c1">0666</span>);
+  <span class="pl-k">if</span>(-<span class="pl-c1">1</span>==semid)
+{
+<span class="pl-c1">perror</span>(<span class="pl-s"><span class="pl-pds">"</span>faill...<span class="pl-pds">"</span></span>);
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}
+}
+
+<span class="pl-k">else</span>
+{
+<span class="pl-k">union</span> semun em;
+em.<span class="pl-smi">val</span>=<span class="pl-c1">1</span>;
+<span class="pl-k">if</span>(<span class="pl-c1">semctl</span>(semid,<span class="pl-c1">0</span>,SETVAL,em)==-<span class="pl-c1">1</span>)
+{
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}
+}
+<span class="pl-k">return</span> <span class="pl-c1">1</span>;
+
+}
+
+<span class="pl-k">int</span> <span class="pl-en">sem_p</span>()
+{
+<span class="pl-k">struct</span> sembuf buf;
+buf.<span class="pl-smi">sem_num</span>=<span class="pl-c1">0</span>;
+buf.<span class="pl-smi">sem_op</span>=-<span class="pl-c1">1</span>;
+buf.<span class="pl-smi">sem_flg</span>=SEM_UNDO;
+
+<span class="pl-k">if</span>(<span class="pl-c1">semop</span>(semid,buf,<span class="pl-c1">1</span>)==-<span class="pl-c1">1</span>)
+{
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}
+<span class="pl-k">return</span> <span class="pl-c1">1</span>;
+
+}
+
+<span class="pl-k">int</span> <span class="pl-en">sem_V</span>()
+{
+<span class="pl-k">struct</span> sembuf buf;
+buf.<span class="pl-smi">sem_num</span>=<span class="pl-c1">0</span>;
+buf.<span class="pl-smi">sem_op</span>=<span class="pl-c1">1</span>;
+buf.<span class="pl-smi">sem_flg</span>=SEM_UNDO;
+
+<span class="pl-k">if</span>(<span class="pl-c1">semop</span>(semid,buf,<span class="pl-c1">1</span>)==-<span class="pl-c1">1</span>)
+{
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}
+<span class="pl-k">return</span> <span class="pl-c1">1</span>;
+
+}
+
+<span class="pl-k">int</span> <span class="pl-en">sem_destroy</span>()
+{
+  <span class="pl-k">if</span>(<span class="pl-c1">sem_ctl</span>(semid,<span class="pl-c1">0</span>,IPC_RMID)==-<span class="pl-c1">1</span>)
+{
+<span class="pl-k">return</span> <span class="pl-c1">0</span>;
+}
+<span class="pl-k">return</span> <span class="pl-c1">1</span>;
+
+}</pre></div>
+
+<h1>
+<a id="有关共享类存的介绍" class="anchor" href="#%E6%9C%89%E5%85%B3%E5%85%B1%E4%BA%AB%E7%B1%BB%E5%AD%98%E7%9A%84%E4%BB%8B%E7%BB%8D" aria-hidden="true"><span class="octicon octicon-link"></span></a>有关共享类存的介绍</h1>
+
+<p>共享类存：是允许两个不相关的进程共享一个逻辑内存</p>
+
+<pre><code>#include&lt;sys/shm.h&gt;
+</code></pre>
+
+<p>一：用于建立共享内存</p>
+
+<pre><code>  int shmget(key_t key,size_t size,int shmflg);
+</code></pre>
+
+<p>第一个参数是：共享内存标示符<br>
+   第二个参数是：共享内存大小<br>
+   第三个参数是:  权限<br>
+   //IPC_CREAT    </p>
+
+<p>二：用于链接共享内存</p>
+
+<pre><code>void* shmat(int shm_id,const void *shmaddr,int shmflg);
+</code></pre>
+
+<p>第一个参数是：共享内存标示符<br>
+   第二个参数是：指定内存连接到当前的地址内存位置  一般给NULL表示让系统来选择共享内存出现的位置<br>
+   第三个参数是:  权限  一般0     </p>
+
+<p>返回值：成功则返回共享内存的首地址<br>
+失败则返回-1   </p>
+
+<p>三：用于断开共享内存    </p>
+
+<pre><code>int shmdt(const void *shmaddr);
+</code></pre>
+
+<p>第一个参数是：共享内存首地址    </p>
+
+<p>返回值：<br>
+成功则返回0<br>
+失败则返回-1        </p>
+
+<p>三：用于删除共享内存    </p>
+
+<pre><code>int shmctl(int shm_id,int command,stuct chmid_ds *buf)
+</code></pre>
+
+<p>第一个参数是：共享内存标示符<br>
+   第二个参数是：IPC_RMID<br>
+   第三个参数是:  NULL    </p>
+
+<div class="highlight highlight-source-c"><pre><span class="pl-k">int</span> <span class="pl-en">main</span>()
+{
+<span class="pl-k">int</span> shmid=<span class="pl-c1">shmget</span>((<span class="pl-c1">key_t</span>)<span class="pl-c1">1234</span>,<span class="pl-c1">256</span>,<span class="pl-c1">0600</span>|IPC_CREAT);
+<span class="pl-c1">system</span>(<span class="pl-s"><span class="pl-pds">"</span>ipcs<span class="pl-pds">"</span></span>);
+
+<span class="pl-k">char</span>*s=<span class="pl-c1">shmat</span>(shmid,<span class="pl-c1">NULL</span>,<span class="pl-c1">0</span>);
+<span class="pl-c1">system</span>(<span class="pl-s"><span class="pl-pds">"</span>ipcs<span class="pl-pds">"</span></span>);
+
+<span class="pl-c1">shmdt</span>(s);
+<span class="pl-c1">system</span>(<span class="pl-s"><span class="pl-pds">"</span>ipcs<span class="pl-pds">"</span></span>);
+
+<span class="pl-c1">shmctl</span>(shmid,IPC_RMID，<span class="pl-c1">NULL</span>);
+<span class="pl-c1">system</span>(<span class="pl-s"><span class="pl-pds">"</span>ipcs<span class="pl-pds">"</span></span>);
+}</pre></div>
+
+<h1>
+<a id="消息队列的实现" class="anchor" href="#%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E7%9A%84%E5%AE%9E%E7%8E%B0" aria-hidden="true"><span class="octicon octicon-link"></span></a>消息队列的实现</h1>
+
+<p>消息队列提供了两个不相关进程之间的消息传递 是通过一个进程向一个存储队列中写东西  然后另一个进程就读数据    </p>
+
+<p>消息队列的最大长度是由一个宏 MSGMAX决定的    </p>
+
+<p>　　该消息队列是独立于其进程的，即使进程都结束了　若没有进行删除操作就　仍然存在</p>
+
+<p>　注意：   </p>
+
+<p>　　　这个与共享类存相似，内核为每个消息队列都设置了一个shmid_ds 结构体  用来管理消息队列   </p>
+
+<p>一：获取 或是 创建消息队列   </p>
+
+<div class="highlight highlight-source-c"><pre><span class="pl-k">struct</span> mss
+{
+   <span class="pl-k">long</span> <span class="pl-k">int</span> type;<span class="pl-c">//类型</span>
+   <span class="pl-k">char</span> buff[<span class="pl-c1">64</span>];
+};</pre></div>
+
+<pre><code>  #include&lt;sys/msg.h&gt;
+  int  msgget(key_t key ,int msgflg);
+</code></pre>
+
+<p>第一个参数： 用来标示消息队列的关键字<br>
+  第二个参数:  标志位 如IPC_CREAT   </p>
+
+<p>返回值：成功返回一个标识符（非负值）失败返回-1   </p>
+
+<p>二：发送一个消息  </p>
+
+<pre><code> int msgsnd(int msgid ,void *msgp,size_t msgsize,int msgflg );
+</code></pre>
+
+<p>第一个参数： 由msgget返回的消息队列标示符<br>
+  第二个参数： 指向要发送消息的缓冲区的指针<br>
+  第三个参数:  表示消息长度（不包括长整形的大小）<br>
+  第四个参数:  标志位 一般设置为0 表示当写满了就阻塞     </p>
+
+<p>返回值：成功返回0 失败返回-1    </p>
+
+<p>三：接收一个消息   </p>
+
+<pre><code> int msgrcv(int msgid ,void *msgp,size_t msgsize,long msgtype ,int msgflg );
+</code></pre>
+
+<p>第一个参数： 由msgget返回的消息队列标示符<br>
+  第二个参数： 指向要接收消息的缓冲区的指针<br>
+  第三个参数:  表示消息长度（不包括长整形的大小）<br>
+  第四个参数:接收消息的类型 注意：当为0的时候便可以接收任何类型的   </p>
+
+<p>第五个参数:  标志位 一般设置为0 表示当写满了就阻塞   </p>
+
+<p>返回值：成功返回0 失败返回-1    </p>
+
+<p>四：删除一个消息队列   </p>
+
+<pre><code> int msgctl(int msgid,int cmd,struct msgid_ds *buf)
+</code></pre>
+
+<p>第一个参数： 由msgget返回的消息队列标示符     </p>
+
+<p>第二个参数： 采取的动作 IPC_RMID(删除)IPC_STAT(将内核的拷到buf)IPC_SET(将buf的拷到内核  权限足够)   </p>
+
+<p>第三个参数:缓冲区  一般为0   </p>
+
+<p>注意：消息队列的长度是65536   </p>
+
+<p>消息队列的结构体 </p>
+
+<pre><code> struct msgqid_ds
+ {
+    msgqnum_t msg_qnum;
+    msglen_t msg_qbytes;//队列的大小
+    pid_t msg_lspid;
+
+ };
+</code></pre>
+
+<h1>
+<a id="总结对比" class="anchor" href="#%E6%80%BB%E7%BB%93%E5%AF%B9%E6%AF%94" aria-hidden="true"><span class="octicon octicon-link"></span></a>总结对比：</h1>
+
+<p>有关信号，管道，信号量，共享内存，消息队列的总结    </p>
+
+<ul>
+<li><p>1：首先信号与信号量的区别：信号是用来进程间的通信（kill发送信号 signal接收信号）<br>
+而信号量是用与控制临界资源的访问     </p></li>
+<li>
+<p>2：有关管道与共享内存以及消息队列的区别与联系    </p>
+
+<p>首先管道（是一种半双工通信）分为有名与无名管道，无名管道只可以用于有亲缘关系的进程通信（通常只有
+一个读进程以及一个写进程）但是有名管道却可以有多个（可以用于两个无关的进程之间的通信），会产生一个fifo文件，
+管道的实现原理：通过两个指针来控制一个缓冲区（是一个大小固定的4k）（还用到了信号和加锁机制）    </p>
+</li>
+<li><p>3：消息队列与有名管道的却别：    </p></li>
+<li>
+<p>4：共享内存方式是进程之间通信的最快方式，而消息队列以及管道都需要在内核和用户空间进行四次的数据拷贝   </p>
+
+<p>终结：<br>
+共享内存（是通过mmap（）映射普通文件实现的）以及消息队列（其共享的区域的生存期不与通信进程结束相关）除非
+显示的删除，否则是同内核持续的，而无名管道却不是这样的，但是有名管道却是持久的     </p>
+</li>
+</ul>
+
+<p>从其效率看：共享内存最快，管道是所有的unix都支持的而消息队列 有些unix还不支持    </p>
+
+<h1>
+<a id="欢迎一起交流学习-" class="anchor" href="#%E6%AC%A2%E8%BF%8E%E4%B8%80%E8%B5%B7%E4%BA%A4%E6%B5%81%E5%AD%A6%E4%B9%A0-" aria-hidden="true"><span class="octicon octicon-link"></span></a>欢迎一起交流学习 </h1>
+
+<p>在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流</p>
+
+<ul>
+<li>邮件(1031379296#qq.com, 把#换成@)</li>
+<li>QQ: 1031379296</li>
+<li>weibo: <a href="http://weibo.com/u/2786211992/home">@王发康</a>
+</li>
+</ul>
+
+<h1>
+<a id="thx" class="anchor" href="#thx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thx</h1>
+
+<ul>
+<li>chunshengsterATgmail.com</li>
+</ul>
+
+<h1>
+<a id="author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h1>
+
+<ul>
+<li>Linux\nginx\golang\c\c++爱好者</li>
+<li>欢迎一起交流  一起学习# </li>
+<li>Others say good and Others good</li>
+</ul>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		          <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("linux process commuinte pipe signal sem shm");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
